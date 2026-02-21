@@ -50,62 +50,91 @@ export default function LoadZipButton() {
         }),
       );
 
-      setFiles(extractedFiles);
+      // updated part
+      const storageData = {}
+
+      for (const file of extractedFiles) {
+        const arrayBuffer = await file.arrayBuffer()
+        const safeKey = `banner_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+
+        storageData[safeKey] = {
+          name: file.name,
+          type: file.type || 'image/png',
+          data: Array.from(new Uint8Array(arrayBuffer))
+        }
+      }
+
+      await chrome.storage.local.remove(['zipBanners', 'zipLastLoaded', 'zipName']); // usuwanie starych danych
+
+      await chrome.storage.local.set({
+        zipBanners: storageData,
+        zipLastLoaded: Date.now(),
+        zipName: zipfile.name
+      })
+
+      getModal('nyan', `ZIP wczytany (${extractedFiles.length} plików)! Gotowy do otwierania kart.`);
+
+      // Wyczyszczenie lokalnego stanu
+      setFiles([]);
+      setLoading(false)
+      // updated part
+
     } catch (e) {
       getModal('error', 'Please upload ZIP file!');
       setZipName('');
       setFiles([]);
+      setLoading(false)
       return;
     }
   };
 
-useEffect(() => {
-  if (files.length === 0) return;
-  setLoading(true);
+// useEffect(() => {
+//   if (files.length === 0) return;
+//   setLoading(true);
 
-  const sortedForDesktopOrMobile = () => {
-    try {
-      const currentShop = getCurrentShop();
+//   const sortedForDesktopOrMobile = () => {
+//     try {
+//       const currentShop = getCurrentShop();
       
-      const isCashback = files.some(file => {
-          const fileKey = file.name
-              .replace(/\.[^/.]+$/, '')
-              .trim()
-              .toUpperCase();
+//       const isCashback = files.some(file => {
+//           const fileKey = file.name
+//               .replace(/\.[^/.]+$/, '')
+//               .trim()
+//               .toUpperCase();
 
-          const parts = fileKey.split('_');
-          const slugParts = parts.filter(p => isNaN(p) && p !== 'DESKTOP' && p !== 'MOBILE');
+//           const parts = fileKey.split('_');
+//           const slugParts = parts.filter(p => isNaN(p) && p !== 'DESKTOP' && p !== 'MOBILE');
           
-          return slugParts.length > 1
-        })
+//           return slugParts.length > 1
+//         })
 
-      for (const item of files) {
-        if (isCashback) {
-          filledCashback(item, desktopFiles, currentShop);
-          filledCashback(item, cashbackMobile, currentShop);
-        } else {
-          checkedDeviceType(item, 'desktop', desktopFiles);
-          checkedDeviceType(item, 'mobile', mobileFiles);
-        }
-      }
+//       for (const item of files) {
+//         if (isCashback) {
+//           filledCashback(item, desktopFiles, currentShop);
+//           filledCashback(item, cashbackMobile, currentShop);
+//         } else {
+//           checkedDeviceType(item, 'desktop', desktopFiles);
+//           checkedDeviceType(item, 'mobile', mobileFiles);
+//         }
+//       }
 
-      // getModal('nyan', 'Files added to inputs!');
+//       // getModal('nyan', 'Files added to inputs!');
 
-       getModal('nyan', 'Files added to inputs! ' + (isCashback ? 'Cashback!' : 'Regular campaign!'));
-    } catch (e) {
-      console.log(e);
-      getModal('cryMen', 'Something went wrong');
-    } finally {
-      setLoading(false);
-    }
-  };
+//        getModal('nyan', 'Files added to inputs! ' + (isCashback ? 'Cashback!' : 'Regular campaign!'));
+//     } catch (e) {
+//       console.log(e);
+//       getModal('cryMen', 'Something went wrong');
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
 
-  const timer = setTimeout(() => {
-    sortedForDesktopOrMobile();
-  }, 2000);
+//   const timer = setTimeout(() => {
+//     sortedForDesktopOrMobile();
+//   }, 2000);
 
-  return () => clearTimeout(timer);
-}, [files]);
+//   return () => clearTimeout(timer);
+// }, [files]);
 
 
   return (
